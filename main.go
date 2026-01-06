@@ -17,15 +17,16 @@ const pomeloASCII = `
                                      `
 
 var (
-	grey1  = gloss.Color("237")
-	grey2  = gloss.Color("245")
+	grey   = gloss.Color("245")
 	accent = gloss.Color("56")
+	white  = gloss.Color("#fff")
 
 	logoStyle      = gloss.NewStyle().Align(gloss.Center)
-	listStyle      = gloss.NewStyle().Padding(1)
-	listFocusStyle = gloss.NewStyle().Border(gloss.NormalBorder()).BorderForeground(grey1).BorderLeftForeground(accent)
+	listStyle      = gloss.NewStyle().Margin(1, 1).Padding(0, 1)
+	listFocusStyle = gloss.NewStyle().Margin(1, 0).Border(gloss.NormalBorder(), false, false, false, true).BorderLeftForeground(accent)
 	listsStyle     = gloss.NewStyle().Align(gloss.Center)
-	infoStyle      = gloss.NewStyle().Foreground(grey2)
+	infoStyle      = gloss.NewStyle().Foreground(grey)
+	nameStyle      = gloss.NewStyle().Foreground(white)
 )
 
 func main() {
@@ -94,12 +95,15 @@ func (m model) View() string {
 	b.WriteString("\n\n")
 
 	for i, l := range m.lists {
+		bold := false
 		style := listStyle.Width(m.width - 4)
 		if i == m.focused {
+			bold = true
 			style = listFocusStyle.Width(m.width - 6)
 		}
 
-		taskStr := l.name + "\n"
+		taskStr := nameStyle.Bold(bold).Render(l.name)
+		taskStr += "\n"
 		taskStr += infoStyle.Render("created:", l.created, "tasks:", strconv.Itoa(len(l.tasks)))
 		b.WriteString(style.Render(taskStr))
 		b.WriteString("\n")
