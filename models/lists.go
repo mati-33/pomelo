@@ -2,6 +2,8 @@ package models
 
 import (
 	"github.com/charmbracelet/bubbletea"
+	gloss "github.com/charmbracelet/lipgloss"
+	"pomelo/components"
 	"pomelo/lists"
 	"pomelo/styles"
 	"strconv"
@@ -11,6 +13,7 @@ import (
 type listsScreen struct {
 	lists   []lists.List
 	focused int
+	notif   components.Notif
 }
 
 func (m listsScreen) Init() tea.Cmd {
@@ -40,11 +43,24 @@ func (m listsScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.focused--
 			}
 
+		case "ctrl+a":
+			lists.AddList(lists.List{
+				Name:     "added from tui",
+				Created:  "todo",
+				Modified: "nil",
+				Tasks:    []lists.Task{},
+			})
+			return m, tea.Batch(func() tea.Msg { return lists.GetAllLists() }, m.notif.Notify("hello world"))
+
 		case "enter":
 			return m, PushScreen(NewListDetailsScreen(m.lists[m.focused]))
 		}
+
 	}
-	return m, nil
+	notif, cmd := m.notif.Update(msg)
+	m.notif = notif
+
+	return m, cmd
 }
 
 func (m listsScreen) View() string {
@@ -72,9 +88,13 @@ func (m listsScreen) View() string {
 		b.WriteString("\n")
 	}
 
+	h := gloss.Height(b.String())
+	notif := gloss.Place(Width, Height+1-h, gloss.Right, gloss.Bottom, m.notif.View())
+	b.WriteString(notif)
+
 	return styles.ListsStyle.Width(Width).Render(b.String())
 }
 
 func newListsScreen() listsScreen {
-	return listsScreen{}
+	return listsScreen{notif: components.Notif{}}
 }
