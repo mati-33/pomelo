@@ -2,12 +2,13 @@ package models
 
 import (
 	"github.com/charmbracelet/bubbletea"
+	"pomelo/lists"
 	"pomelo/styles"
 	"strings"
 )
 
 type listDetailsScreen struct {
-	list list
+	list lists.List
 }
 
 func (m listDetailsScreen) Init() tea.Cmd {
@@ -34,11 +35,11 @@ func (m listDetailsScreen) View() string {
 	b.WriteString("\n\n")
 
 	b.WriteString("this is list details view\n")
-	b.WriteString(m.list.name)
+	b.WriteString(m.list.Name)
 
 	return b.String()
 }
 
-func NewListDetailsScreen(list list) listDetailsScreen {
+func NewListDetailsScreen(list lists.List) listDetailsScreen {
 	return listDetailsScreen{list}
 }

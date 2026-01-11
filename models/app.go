@@ -21,7 +21,7 @@ type pomeloModel struct {
 
 func InitialPomeloModel() pomeloModel {
 	stack := []tea.Model{}
-	listsScreen := newListsScreen(0)
+	listsScreen := newListsScreen()
 	stack = append(stack, listsScreen)
 	return pomeloModel{stack: stack}
 }
