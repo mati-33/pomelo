@@ -1,14 +1,11 @@
 package models
 
 import (
+	"database/sql"
+	"strings"
+
 	"github.com/charmbracelet/bubbletea"
 )
-
-const pomeloASCII = `
- ▄▄▄  ▄▄▄  ▄   ▄  ▄▄▄  ▄    ▄▄▄ 
- █▄█  █ █  █▀▄▀█  █▄▄  █    █ █ 
- █    ███  █   █  █▄▄  █▄▄  ███ 
-                                     `
 
 var (
 	Width  int
@@ -19,9 +16,9 @@ type pomeloModel struct {
 	stack []tea.Model
 }
 
-func InitialPomeloModel() pomeloModel {
+func InitialPomeloModel(db *sql.DB) pomeloModel {
 	stack := []tea.Model{}
-	listsScreen := newListsScreen()
+	listsScreen := newListsScreen(db)
 	stack = append(stack, listsScreen)
 	return pomeloModel{stack: stack}
 }
@@ -39,7 +36,7 @@ func (m pomeloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case PopScreenMsg:
 		m.stack = m.stack[:len(m.stack)-1]
-		return m, nil
+		return m, msg.cmd
 
 	case PushScreenMsg:
 		m.stack = append(m.stack, msg.Screen)
@@ -63,17 +60,25 @@ func (m pomeloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m pomeloModel) View() string {
-	return m.stack[len(m.stack)-1].View()
+	b := strings.Builder{}
+	b.WriteString("  🍊pomelo v0.1.0\n\n")
+	b.WriteString(m.stack[len(m.stack)-1].View())
+	return b.String()
 }
 
-type PopScreenMsg struct{}
+type PopScreenMsg struct {
+	cmd tea.Cmd
+}
 
 type PushScreenMsg struct {
 	Screen tea.Model
 }
 
-func PopScreen() tea.Msg {
-	return PopScreenMsg{}
+// todo: WithCommand(cmd tea.Cmd)
+func PopScreen(cmd tea.Cmd) tea.Cmd {
+	return func() tea.Msg {
+		return PopScreenMsg{cmd}
+	}
 }
 
 func PushScreen(screen tea.Model) tea.Cmd {
