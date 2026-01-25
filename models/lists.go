@@ -119,7 +119,7 @@ func (m listsScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case "enter":
 					id := m.list.SelectedItem().(item).ID
 					return m, func() tea.Msg {
-						screen := newListScreen(id, m.db, m.width, m.height)
+						screen := newListScreen(id, m.db, m.width, m.height-3)
 						return PushScreenMsg{screen, screen.Init()}
 					}
 				}
@@ -230,7 +230,8 @@ func (m listsScreen) View() string {
 		ret += m.input.View() + "\n"
 	}
 
-	ret += m.list.View()
+	ret += m.list.View() + "\n"
+	ret += "j   k   a add  d delete  r rename  enter details  ctrl+c exit"
 	return ret
 }
 
