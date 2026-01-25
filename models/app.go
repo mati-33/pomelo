@@ -40,7 +40,7 @@ func (m pomeloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case PushScreenMsg:
 		m.stack = append(m.stack, msg.Screen)
-		return m, nil
+		return m, msg.Cmd
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -72,6 +72,7 @@ type PopScreenMsg struct {
 
 type PushScreenMsg struct {
 	Screen tea.Model
+	Cmd    tea.Cmd
 }
 
 // todo: WithCommand(cmd tea.Cmd)
@@ -83,6 +84,6 @@ func PopScreen(cmd tea.Cmd) tea.Cmd {
 
 func PushScreen(screen tea.Model) tea.Cmd {
 	return func() tea.Msg {
-		return PushScreenMsg{screen}
+		return PushScreenMsg{screen, nil}
 	}
 }

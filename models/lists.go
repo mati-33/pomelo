@@ -17,6 +17,7 @@ const (
 	listMode mode = iota
 	addMode
 	deleteMode
+	modifyMode
 )
 
 type item struct {
@@ -25,17 +26,18 @@ type item struct {
 
 func (i item) Title() string { return i.Name }
 func (i item) Description() string {
-	return fmt.Sprintf("Created: %s :: tasks: 3", i.Created.Format("02-01-2006 15:04"))
+	return fmt.Sprintf("Created: %s :: tasks: %d", i.Created.Format("02-01-2006 15:04"), i.TaskCount)
 }
 func (i item) FilterValue() string { return i.Name }
 
 type listsScreen struct {
-	list        list.Model
-	addInput    textinput.Model
-	deleteInput textinput.Model
-	mode        mode
-	err         error
-	db          *sql.DB
+	list   list.Model
+	input  textinput.Model
+	mode   mode
+	err    error
+	db     *sql.DB
+	width  int
+	height int
 }
 
 func newListsScreen(db *sql.DB) listsScreen {
@@ -46,18 +48,14 @@ func newListsScreen(db *sql.DB) listsScreen {
 	l.SetShowStatusBar(false)
 	l.DisableQuitKeybindings()
 
-	ai := textinput.New()
-	ai.Prompt = ""
-	di := textinput.New()
-	di.Prompt = ""
-	di.CharLimit = 1
+	i := textinput.New()
+	i.Prompt = ""
 
 	return listsScreen{
-		list:        l,
-		addInput:    ai,
-		deleteInput: di,
-		mode:        listMode,
-		db:          db,
+		list:  l,
+		input: i,
+		mode:  listMode,
+		db:    db,
 	}
 }
 
@@ -70,6 +68,8 @@ type ListAdded struct{}
 
 type ListDeleted struct{}
 
+type ListModified struct{}
+
 func (m listsScreen) Init() tea.Cmd {
 	return GetAllListsCmd(m.db)
 }
@@ -77,7 +77,7 @@ func (m listsScreen) Init() tea.Cmd {
 func (m listsScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
-	case ListAdded, ListDeleted:
+	case ListAdded, ListDeleted, ListModified:
 		return m, GetAllListsCmd(m.db)
 
 	case LoadResult:
@@ -90,6 +90,8 @@ func (m listsScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 		m.list.SetSize(msg.Width, msg.Height-3)
 
 	case tea.KeyMsg:
@@ -100,29 +102,44 @@ func (m listsScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case "a":
 					m.mode = addMode
 					m.list.SetShowTitle(false)
-					return m, m.addInput.Focus()
+					m.input.Prompt = "name: "
+					return m, m.input.Focus()
 				case "d":
 					m.mode = deleteMode
 					m.list.SetShowTitle(false)
-					return m, m.deleteInput.Focus()
+					m.input.Prompt = "delete? (y/n): "
+					return m, m.input.Focus()
+				case "r":
+					m.mode = modifyMode
+					m.list.SetShowTitle(false)
+					m.input.Prompt = "rename: "
+					name := m.list.SelectedItem().(item).Name
+					m.input.SetValue(name)
+					return m, m.input.Focus()
+				case "enter":
+					id := m.list.SelectedItem().(item).ID
+					return m, func() tea.Msg {
+						screen := newListScreen(id, m.db, m.width, m.height)
+						return PushScreenMsg{screen, screen.Init()}
+					}
 				}
 			}
 
 		case deleteMode:
 			switch msg.String() {
 			case "enter":
-				value := m.deleteInput.Value()
+				value := m.input.Value()
 				if value == "n" {
 					m.mode = listMode
 					m.list.SetShowTitle(true)
-					m.deleteInput.SetValue("")
-					m.deleteInput.Blur()
+					m.input.SetValue("")
+					m.input.Blur()
 				}
 				if value == "y" {
 					m.mode = listMode
 					m.list.SetShowTitle(true)
-					m.deleteInput.SetValue("")
-					m.deleteInput.Blur()
+					m.input.SetValue("")
+					m.input.Blur()
 					id := m.list.SelectedItem().(item).ID
 					return m, func() tea.Msg {
 						err := data.DeleteList(m.db, id)
@@ -136,19 +153,19 @@ func (m listsScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				m.mode = listMode
 				m.list.SetShowTitle(true)
-				m.deleteInput.SetValue("")
-				m.deleteInput.Blur()
+				m.input.SetValue("")
+				m.input.Blur()
 			}
 
 		case addMode:
 			switch msg.String() {
 			case "enter":
-				name := m.addInput.Value()
+				name := m.input.Value()
 				if len(name) > 0 {
 					m.mode = listMode
 					m.list.SetShowTitle(true)
-					m.addInput.SetValue("")
-					m.addInput.Blur()
+					m.input.SetValue("")
+					m.input.Blur()
 					return m, func() tea.Msg {
 						_, err := data.AddList(m.db, name)
 						if err != nil {
@@ -160,8 +177,33 @@ func (m listsScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				m.mode = listMode
 				m.list.SetShowTitle(true)
-				m.addInput.SetValue("")
-				m.addInput.Blur()
+				m.input.SetValue("")
+				m.input.Blur()
+			}
+
+		case modifyMode:
+			switch msg.String() {
+			case "enter":
+				renamed := m.input.Value()
+				if len(renamed) > 0 {
+					id := m.list.SelectedItem().(item).ID
+					m.mode = listMode
+					m.list.SetShowTitle(true)
+					m.input.SetValue("")
+					m.input.Blur()
+					return m, func() tea.Msg {
+						err := data.ModifyList(m.db, id, renamed)
+						if err != nil {
+							return nil
+						}
+						return ListModified{}
+					}
+				}
+			case "esc":
+				m.mode = listMode
+				m.list.SetShowTitle(true)
+				m.input.SetValue("")
+				m.input.Blur()
 			}
 		}
 	}
@@ -170,13 +212,10 @@ func (m listsScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.mode {
 	case listMode:
 		m.list, cmd = m.list.Update(msg)
-	case addMode:
-		m.addInput, cmd = m.addInput.Update(msg)
-	case deleteMode:
-		m.deleteInput, cmd = m.deleteInput.Update(msg)
+	case addMode, deleteMode, modifyMode:
+		m.input, cmd = m.input.Update(msg)
 	}
 	return m, cmd
-
 }
 
 func (m listsScreen) View() string {
@@ -187,12 +226,8 @@ func (m listsScreen) View() string {
 	ret := ""
 
 	switch m.mode {
-
-	case deleteMode:
-		ret += "delete? (y/n): " + m.deleteInput.View() + "\n"
-
-	case addMode:
-		ret += "name: " + m.addInput.View() + "\n"
+	case addMode, deleteMode, modifyMode:
+		ret += m.input.View() + "\n"
 	}
 
 	ret += m.list.View()
