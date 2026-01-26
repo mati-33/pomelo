@@ -9,15 +9,7 @@ import (
 	"github.com/charmbracelet/bubbletea"
 
 	"pomelo/data"
-)
-
-type mode int
-
-const (
-	listMode mode = iota
-	addMode
-	deleteMode
-	modifyMode
+	"pomelo/styles"
 )
 
 type item struct {
@@ -42,11 +34,12 @@ type listsScreen struct {
 
 func newListsScreen(db *sql.DB) listsScreen {
 	l := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
-	l.Title = "type / to search"
+	l.Title = "your lists"
 	l.FilterInput.Prompt = "/"
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(false)
 	l.DisableQuitKeybindings()
+	l.Styles.Title = l.Styles.Title.UnsetBackground().UnsetMargins().UnsetPadding().Foreground(styles.ColorMuted1)
 
 	i := textinput.New()
 	i.Prompt = ""
@@ -119,7 +112,7 @@ func (m listsScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case "enter":
 					id := m.list.SelectedItem().(item).ID
 					return m, func() tea.Msg {
-						screen := newListScreen(id, m.db, m.width, m.height-3)
+						screen := newTasksScreen(id, m.db, m.width, m.height-3)
 						return PushScreenMsg{screen, screen.Init()}
 					}
 				}
@@ -230,8 +223,8 @@ func (m listsScreen) View() string {
 		ret += m.input.View() + "\n"
 	}
 
-	ret += m.list.View() + "\n"
-	ret += "j   k   a add  d delete  r rename  enter details  ctrl+c exit"
+	ret += styles.List.Render(m.list.View())
+
 	return ret
 }
 

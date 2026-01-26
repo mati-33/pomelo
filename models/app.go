@@ -65,25 +65,3 @@ func (m pomeloModel) View() string {
 	b.WriteString(m.stack[len(m.stack)-1].View())
 	return b.String()
 }
-
-type PopScreenMsg struct {
-	cmd tea.Cmd
-}
-
-type PushScreenMsg struct {
-	Screen tea.Model
-	Cmd    tea.Cmd
-}
-
-// todo: WithCommand(cmd tea.Cmd)
-func PopScreen(cmd tea.Cmd) tea.Cmd {
-	return func() tea.Msg {
-		return PopScreenMsg{cmd}
-	}
-}
-
-func PushScreen(screen tea.Model) tea.Cmd {
-	return func() tea.Msg {
-		return PushScreenMsg{screen, nil}
-	}
-}
