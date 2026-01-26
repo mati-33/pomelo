@@ -7,24 +7,22 @@ import (
 	"github.com/charmbracelet/bubbletea"
 )
 
-var (
-	Width  int
-	Height int
-)
-
 type pomeloModel struct {
-	stack []tea.Model
+	stack  []tea.Model
+	db     *sql.DB
+	loaded bool
 }
 
 func InitialPomeloModel(db *sql.DB) pomeloModel {
-	stack := []tea.Model{}
-	listsScreen := newListsScreen(db)
-	stack = append(stack, listsScreen)
-	return pomeloModel{stack: stack}
+	return pomeloModel{
+		stack:  []tea.Model{},
+		db:     db,
+		loaded: false,
+	}
 }
 
 func (m pomeloModel) Init() tea.Cmd {
-	return m.stack[len(m.stack)-1].Init()
+	return nil
 }
 
 func (m pomeloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -33,6 +31,12 @@ func (m pomeloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		Width = msg.Width
 		Height = msg.Height
+		if !m.loaded {
+			firstScreen := newListsScreen(m.db)
+			m.stack = append(m.stack, firstScreen)
+			m.loaded = true
+			return m, firstScreen.Init()
+		}
 
 	case PopScreenMsg:
 		m.stack = m.stack[:len(m.stack)-1]
@@ -50,18 +54,26 @@ func (m pomeloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	var cmd tea.Cmd
+	if len(m.stack) > 0 {
+		var cmd tea.Cmd
 
-	currentScreen := m.stack[len(m.stack)-1]
-	currentScreen, cmd = currentScreen.Update(msg)
-	m.stack[len(m.stack)-1] = currentScreen
+		currentScreen := m.stack[len(m.stack)-1]
+		currentScreen, cmd = currentScreen.Update(msg)
+		m.stack[len(m.stack)-1] = currentScreen
 
-	return m, cmd
+		return m, cmd
+	}
+
+	return m, nil
 }
 
 func (m pomeloModel) View() string {
 	b := strings.Builder{}
 	b.WriteString("  pomelo v0.1.0\n\n")
-	b.WriteString(m.stack[len(m.stack)-1].View())
+
+	if len(m.stack) > 0 {
+		b.WriteString(m.stack[len(m.stack)-1].View())
+	}
+
 	return b.String()
 }

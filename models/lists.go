@@ -18,28 +18,26 @@ type item struct {
 
 func (i item) Title() string { return i.Name }
 func (i item) Description() string {
-	return fmt.Sprintf("Created: %s :: tasks: %d", i.Created.Format("02-01-2006 15:04"), i.TaskCount)
+	return fmt.Sprintf("added: %s  tasks: %d", i.Created.Format("02-01-2006 15:04"), i.TaskCount)
 }
 func (i item) FilterValue() string { return i.Name }
 
 type listsScreen struct {
-	list   list.Model
-	input  textinput.Model
-	mode   mode
-	err    error
-	db     *sql.DB
-	width  int
-	height int
+	list  list.Model
+	input textinput.Model
+	mode  mode
+	err   error
+	db    *sql.DB
 }
 
 func newListsScreen(db *sql.DB) listsScreen {
-	l := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
+	l := list.New([]list.Item{}, list.NewDefaultDelegate(), Width, Height-3)
 	l.Title = "your lists"
 	l.FilterInput.Prompt = "/"
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(false)
 	l.DisableQuitKeybindings()
-	l.Styles.Title = l.Styles.Title.UnsetBackground().UnsetMargins().UnsetPadding().Foreground(styles.ColorMuted1)
+	l.Styles.Title = l.Styles.Title.UnsetBackground().UnsetMargins().UnsetPadding()
 
 	i := textinput.New()
 	i.Prompt = ""
@@ -83,8 +81,6 @@ func (m listsScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
 		m.list.SetSize(msg.Width, msg.Height-3)
 
 	case tea.KeyMsg:
@@ -112,7 +108,7 @@ func (m listsScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case "enter":
 					id := m.list.SelectedItem().(item).ID
 					return m, func() tea.Msg {
-						screen := newTasksScreen(id, m.db, m.width, m.height-3)
+						screen := newTasksScreen(id, m.db)
 						return PushScreenMsg{screen, screen.Init()}
 					}
 				}
@@ -220,7 +216,7 @@ func (m listsScreen) View() string {
 
 	switch m.mode {
 	case addMode, deleteMode, modifyMode:
-		ret += m.input.View() + "\n"
+		ret += styles.Input.Render(m.input.View())
 	}
 
 	ret += styles.List.Render(m.list.View())

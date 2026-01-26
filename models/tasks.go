@@ -38,17 +38,16 @@ type tasksScreen struct {
 	mode   mode
 	err    error
 	db     *sql.DB
-	width  int
-	height int
 }
 
-func newTasksScreen(listId int64, db *sql.DB, width, height int) tasksScreen {
-	l := list.New([]list.Item{}, list.NewDefaultDelegate(), width, height)
-	l.Title = "type / to search"
+func newTasksScreen(listId int64, db *sql.DB) tasksScreen {
+	l := list.New([]list.Item{}, list.NewDefaultDelegate(), Width, Height-3)
+	l.Title = ""
 	l.FilterInput.Prompt = "/"
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(false)
 	l.DisableQuitKeybindings()
+	l.Styles.Title = l.Styles.Title.UnsetBackground().UnsetMargins().UnsetPadding()
 
 	i := textinput.New()
 	i.Prompt = ""
@@ -71,7 +70,13 @@ type TaskModified struct{}
 type TaskToggled struct{}
 
 func (m tasksScreen) Init() tea.Cmd {
-	return GetAllTasksCmd(m.db, m.listId)
+	return tea.Batch(GetAllTasksCmd(m.db, m.listId), func() tea.Msg {
+		list, err := data.GetList(m.db, m.listId)
+		if err != nil {
+			return nil
+		}
+		return list
+	})
 }
 
 func (m tasksScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -84,6 +89,9 @@ func (m tasksScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case TaskAdded, TaskDeleted, TaskModified, TaskToggled:
 		return m, GetAllTasksCmd(m.db, m.listId)
 
+	case tea.WindowSizeMsg:
+		m.list.SetSize(msg.Width, msg.Height-3)
+
 	case LoadTasks:
 		if msg.err != nil {
 			m.err = msg.err
@@ -91,6 +99,10 @@ func (m tasksScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		cmd := m.list.SetItems(msg.tasks)
 		return m, cmd
+
+	case data.List:
+		m.list.Title = msg.Name
+		return m, nil
 
 	case tea.KeyMsg:
 		switch m.mode {
@@ -227,8 +239,7 @@ func (m tasksScreen) View() string {
 	switch m.mode {
 
 	case deleteMode, addMode, modifyMode:
-		ret += m.input.View() + "\n"
-
+		ret += styles.Input.Render(m.input.View())
 	}
 	ret += styles.List.Render(m.list.View())
 

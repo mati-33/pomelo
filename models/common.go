@@ -4,6 +4,11 @@ import (
 	"github.com/charmbracelet/bubbletea"
 )
 
+var (
+	Width  int
+	Height int
+)
+
 type mode int
 
 const (
