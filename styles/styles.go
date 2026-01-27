@@ -1,27 +1,73 @@
 package styles
 
 import (
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
 )
 
 var (
-	ColorPrimary   = lipgloss.Color("#")
-	ColorSecondary = lipgloss.Color("111")
-	ColorText      = lipgloss.Color("15")
-	ColorMuted1    = lipgloss.Color("245")
-	ColorMuted2    = lipgloss.Color("235")
+	ColorPrimary   = lipgloss.Color("33")  // #0087ff
+	ColorSecondary = lipgloss.Color("111") // #87afff
+	ColorText      = lipgloss.Color("15")  // #ffffff
+	ColorMuted1    = lipgloss.Color("245") // #8a8a8a
+	ColorMuted2    = lipgloss.Color("235") // #262626
+	ColorAdd       = lipgloss.Color("36")  // #00af87
+	ColorRename    = lipgloss.Color("136") // #af8700
+	ColorDelete    = lipgloss.Color("204") // #ff5f87
+	ColorFilter    = lipgloss.Color("135") // #af5fff
+
+	List        = lipgloss.NewStyle().Margin(0, 3, 0, 1)
+	HelpKey     = lipgloss.NewStyle().Foreground(ColorSecondary)
+	HelpDesc    = lipgloss.NewStyle().Foreground(ColorMuted1)
+	Help        = lipgloss.NewStyle().Margin(0, 3, 0, 3)
+	InputBase   = lipgloss.NewStyle().Foreground(ColorText).Padding(0, 0, 0, 1).Margin(0, 1, 0, 3)
+	InputAdd    = InputBase.Background(ColorAdd)
+	InputRename = InputBase.Background(ColorRename)
+	InputDelete = InputBase.Background(ColorDelete)
+	Header      = lipgloss.NewStyle().
+			Margin(1, 1, 2, 1).
+			Padding(0, 1).
+			Border(lipgloss.ThickBorder(), false, true, false, true).
+			BorderForeground(ColorPrimary)
 )
 
-var (
-	List     = lipgloss.NewStyle().Margin(0, 1)
-	HelpKey  = lipgloss.NewStyle().Foreground(ColorSecondary)
-	HelpDesc = lipgloss.NewStyle().Foreground(ColorMuted1)
-	Help     = lipgloss.NewStyle().Margin(0, 1, 0, 3)
-	Input    = lipgloss.NewStyle().MarginLeft(3).MarginBottom(1)
-	Header   = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder(), false, false, true, false).
-			BorderForeground(ColorMuted2).
-			MarginLeft(3).
-			MarginRight(3).
-			MarginBottom(1)
-)
+func ListStyles() list.Styles {
+	s := list.DefaultStyles()
+
+	s.Title = lipgloss.NewStyle().Foreground(ColorText).Background(ColorPrimary).Padding(0, 1)
+	s.FilterPrompt = lipgloss.NewStyle().Foreground(ColorText).Background(ColorFilter).Padding(0, 1).Margin(0, 1, 0, 0)
+	s.FilterCursor = lipgloss.NewStyle().Foreground(ColorText)
+
+	return s
+}
+
+func ListItemStyles() list.DefaultItemStyles {
+	s := list.NewDefaultItemStyles()
+
+	s.SelectedTitle = lipgloss.NewStyle().
+		Border(lipgloss.ThickBorder(), false, false, false, true).
+		BorderForeground(ColorPrimary).
+		Foreground(ColorText).
+		Bold(true).
+		Padding(0, 0, 0, 1)
+	s.SelectedDesc = s.SelectedTitle.UnsetBold().UnsetUnderline()
+
+	return s
+}
+
+func HelpStyles() help.Styles {
+	keyStyle := lipgloss.NewStyle().Foreground(ColorSecondary)
+	descStyle := lipgloss.NewStyle().Foreground(ColorMuted1)
+	sepStyle := lipgloss.NewStyle().Foreground(ColorMuted1)
+
+	return help.Styles{
+		ShortKey:       keyStyle,
+		ShortDesc:      descStyle,
+		ShortSeparator: sepStyle,
+		Ellipsis:       sepStyle,
+		FullKey:        keyStyle,
+		FullDesc:       descStyle,
+		FullSeparator:  sepStyle,
+	}
+}

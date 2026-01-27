@@ -9,6 +9,8 @@ var (
 	Height int
 )
 
+var pomeloASCI = "█▀▄ █▀▄ █▄ ▄█ █▀▀ █   █▀█\n█▀▀ █▄█ █ ▀ █ ██▄ █▄▄ █▄▀"
+
 type mode int
 
 const (

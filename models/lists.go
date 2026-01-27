@@ -4,10 +4,14 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
+	"pomelo/components"
 	"pomelo/data"
 	"pomelo/styles"
 )
@@ -22,31 +26,122 @@ func (i item) Description() string {
 }
 func (i item) FilterValue() string { return i.Name }
 
+type listsKeyMap struct {
+	Up       key.Binding
+	Down     key.Binding
+	Left     key.Binding
+	Right    key.Binding
+	Navigate key.Binding
+	Add      key.Binding
+	Rename   key.Binding
+	Delete   key.Binding
+	Tasks    key.Binding
+	Filter   key.Binding
+	Help     key.Binding
+	Quit     key.Binding
+}
+
+func (k listsKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Navigate, k.Help, k.Quit}
+}
+
+func (k listsKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{k.Up, k.Down, k.Left, k.Right},
+		{k.Add, k.Rename, k.Delete, k.Tasks},
+		{k.Filter, k.Help, k.Quit},
+	}
+}
+
+var listsKeys = listsKeyMap{
+	Up: key.NewBinding(
+		key.WithKeys("up", "k"),
+		key.WithHelp("k", "move up"),
+	),
+	Down: key.NewBinding(
+		key.WithKeys("down", "j"),
+		key.WithHelp("j", "move down"),
+	),
+	Left: key.NewBinding(
+		key.WithKeys("left", "h"),
+		key.WithHelp("h", "move left"),
+	),
+	Right: key.NewBinding(
+		key.WithKeys("right", "l"),
+		key.WithHelp("l", "move right"),
+	),
+	Navigate: key.NewBinding(
+		key.WithKeys("h", "j", "k", "l"),
+		key.WithHelp("hjkl", "navigate"),
+	),
+	Add: key.NewBinding(
+		key.WithKeys("a"),
+		key.WithHelp("a", "add"),
+	),
+	Rename: key.NewBinding(
+		key.WithKeys("r"),
+		key.WithHelp("r", "rename"),
+	),
+	Delete: key.NewBinding(
+		key.WithKeys("d"),
+		key.WithHelp("d", "delete"),
+	),
+	Tasks: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "see tasks"),
+	),
+	Filter: key.NewBinding(
+		key.WithKeys("/"),
+		key.WithHelp("/", "filter"),
+	),
+	Help: key.NewBinding(
+		key.WithKeys("?"),
+		key.WithHelp("?", "toggle help"),
+	),
+	Quit: key.NewBinding(
+		key.WithKeys("ctrl+c"),
+		key.WithHelp("ctrl+c", "quit"),
+	),
+}
+
 type listsScreen struct {
-	list  list.Model
-	input textinput.Model
-	mode  mode
-	err   error
-	db    *sql.DB
+	header components.Header
+	list   list.Model
+	input  textinput.Model
+	keys   listsKeyMap
+	help   help.Model
+	mode   mode
+	err    error
+	db     *sql.DB
 }
 
 func newListsScreen(db *sql.DB) listsScreen {
-	l := list.New([]list.Item{}, list.NewDefaultDelegate(), Width, Height-3)
+	delegate := list.NewDefaultDelegate()
+	delegate.Styles = styles.ListItemStyles()
+	l := list.New([]list.Item{}, delegate, Width, Height-5)
 	l.Title = "your lists"
-	l.FilterInput.Prompt = "/"
+	l.FilterInput.Prompt = "filter:"
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(false)
 	l.DisableQuitKeybindings()
-	l.Styles.Title = l.Styles.Title.UnsetBackground().UnsetMargins().UnsetPadding()
+	l.Styles = styles.ListStyles()
+	l.FilterInput.PromptStyle = l.Styles.FilterPrompt
+	l.FilterInput.Cursor.Style = l.Styles.FilterCursor
 
 	i := textinput.New()
 	i.Prompt = ""
 
+	h := help.New()
+	h.Styles = styles.HelpStyles()
+
 	return listsScreen{
-		list:  l,
-		input: i,
-		mode:  listMode,
-		db:    db,
+		header: components.NewHeader(pomeloASCI, " task manager", "v0.1.0", Width),
+		list:   l,
+		input:  i,
+		keys:   listsKeys,
+		help:   h,
+		mode:   listMode,
+		db:     db,
 	}
 }
 
@@ -81,7 +176,9 @@ func (m listsScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case tea.WindowSizeMsg:
-		m.list.SetSize(msg.Width, msg.Height-3)
+		m.list.SetSize(msg.Width, msg.Height-5)
+		m.help.Width = msg.Width
+		m.header.SetWidth(msg.Width)
 
 	case tea.KeyMsg:
 		switch m.mode {
@@ -111,6 +208,9 @@ func (m listsScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						screen := newTasksScreen(id, m.db)
 						return PushScreenMsg{screen, screen.Init()}
 					}
+				case "?":
+					m.help.ShowAll = !m.help.ShowAll
+					return m, nil
 				}
 			}
 
@@ -212,16 +312,38 @@ func (m listsScreen) View() string {
 		return fmt.Sprintf("Error!!: %v", m.err)
 	}
 
-	ret := ""
+	header := m.header.View()
+	help := m.help.View(m.keys)
+
+	listHeight := Height - lipgloss.Height(header) - lipgloss.Height(help)
+	input := ""
+
+	var inputStyle lipgloss.Style
+
+	switch m.mode {
+	case addMode:
+		inputStyle = styles.InputAdd
+	case modifyMode:
+		inputStyle = styles.InputRename
+	case deleteMode:
+		inputStyle = styles.InputDelete
+	}
 
 	switch m.mode {
 	case addMode, deleteMode, modifyMode:
-		ret += styles.Input.Render(m.input.View())
+		m.input.PromptStyle = inputStyle
+		input = m.input.View()
+		listHeight = listHeight - lipgloss.Height(input)
+		m.list.SetHeight(listHeight)
+		list := m.list.View()
+		return lipgloss.JoinVertical(lipgloss.Left, header, input, styles.List.Render(list), styles.Help.Render(help))
 	}
 
-	ret += styles.List.Render(m.list.View())
+	// todo: is there a way to do that in Update?
+	m.list.SetHeight(listHeight)
+	list := m.list.View()
 
-	return ret
+	return lipgloss.JoinVertical(lipgloss.Left, header, styles.List.Render(list), styles.Help.Render(help))
 }
 
 func GetAllListsCmd(db *sql.DB) tea.Cmd {

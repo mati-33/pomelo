@@ -2,7 +2,6 @@ package models
 
 import (
 	"database/sql"
-	"strings"
 
 	"github.com/charmbracelet/bubbletea"
 )
@@ -68,12 +67,9 @@ func (m pomeloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m pomeloModel) View() string {
-	b := strings.Builder{}
-	b.WriteString("  pomelo v0.1.0\n\n")
-
 	if len(m.stack) > 0 {
-		b.WriteString(m.stack[len(m.stack)-1].View())
+		return m.stack[len(m.stack)-1].View()
 	}
 
-	return b.String()
+	return ""
 }
