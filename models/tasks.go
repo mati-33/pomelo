@@ -138,6 +138,7 @@ func newTasksScreen(listId int64, db *sql.DB) tasksScreen {
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(false)
 	l.DisableQuitKeybindings()
+	l.SetStatusBarItemName("task", "tasks")
 	l.Styles = styles.ListStyles()
 	l.FilterInput.PromptStyle = l.Styles.FilterPrompt
 	l.FilterInput.Cursor.Style = l.Styles.FilterCursor

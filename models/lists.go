@@ -124,6 +124,7 @@ func newListsScreen(db *sql.DB) listsScreen {
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(false)
 	l.DisableQuitKeybindings()
+	l.SetStatusBarItemName("list", "lists")
 	l.Styles = styles.ListStyles()
 	l.FilterInput.PromptStyle = l.Styles.FilterPrompt
 	l.FilterInput.Cursor.Style = l.Styles.FilterCursor

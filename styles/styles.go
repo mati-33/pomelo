@@ -42,6 +42,7 @@ func ListStyles() list.Styles {
 	s.Title = lipgloss.NewStyle().Foreground(ColorText).Background(ColorPrimary).Padding(0, 1)
 	s.FilterPrompt = lipgloss.NewStyle().Foreground(ColorText).Background(ColorFilter).Padding(0, 1).Margin(0, 1, 0, 0)
 	s.FilterCursor = lipgloss.NewStyle().Foreground(ColorText)
+	s.NoItems = lipgloss.NewStyle().Foreground(ColorText).Margin(0, 2)
 
 	return s
 }
