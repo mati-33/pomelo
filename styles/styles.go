@@ -7,15 +7,17 @@ import (
 )
 
 var (
-	ColorPrimary   = lipgloss.Color("33")  // #0087ff
-	ColorSecondary = lipgloss.Color("111") // #87afff
-	ColorText      = lipgloss.Color("15")  // #ffffff
-	ColorMuted1    = lipgloss.Color("245") // #8a8a8a
-	ColorMuted2    = lipgloss.Color("235") // #262626
-	ColorAdd       = lipgloss.Color("36")  // #00af87
-	ColorRename    = lipgloss.Color("136") // #af8700
-	ColorDelete    = lipgloss.Color("204") // #ff5f87
-	ColorFilter    = lipgloss.Color("135") // #af5fff
+	ColorPrimary     = lipgloss.Color("33")  // #0087ff
+	ColorSecondary   = lipgloss.Color("111") // #87afff
+	ColorText        = lipgloss.Color("15")  // #ffffff
+	ColorMuted1      = lipgloss.Color("245") // #8a8a8a
+	ColorMuted2      = lipgloss.Color("235") // #262626
+	ColorAdd         = lipgloss.Color("36")  // #00af87
+	ColorRename      = lipgloss.Color("136") // #af8700
+	ColorDelete      = lipgloss.Color("204") // #ff5f87
+	ColorFilter      = lipgloss.Color("135") // #af5fff
+	ColorTaskDone    = ColorAdd
+	ColorTaskNotDone = ColorDelete
 
 	List        = lipgloss.NewStyle().Margin(0, 3, 0, 1)
 	HelpKey     = lipgloss.NewStyle().Foreground(ColorSecondary)
@@ -25,6 +27,8 @@ var (
 	InputAdd    = InputBase.Background(ColorAdd)
 	InputRename = InputBase.Background(ColorRename)
 	InputDelete = InputBase.Background(ColorDelete)
+	TaskDone    = lipgloss.NewStyle().Foreground(ColorTaskDone)
+	TaskNotDone = lipgloss.NewStyle().Foreground(ColorTaskNotDone)
 	Header      = lipgloss.NewStyle().
 			Margin(1, 1, 2, 1).
 			Padding(0, 1).
